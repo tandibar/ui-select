@@ -101,6 +101,7 @@ angular.module('ui.select', [])
   ctrl.selected = undefined;
   ctrl.open = false;
   ctrl.disabled = false;
+  ctrl.allowNewValues = false;
 
   ctrl.searchInput = $element.querySelectorAll('input.ui-select-search');
 
@@ -151,6 +152,10 @@ angular.module('ui.select', [])
 
   // When the user clicks on an item inside the dropdown list
   ctrl.select = function(item) {
+    if(ctrl.allowNewValues && !item && ctrl.search.length > 0) {
+      // create new item on the fly
+      item = ctrl.search;
+    }
     ctrl.selected = item;
     ctrl.close();
     // Using a watch instead of $scope.ngModel.$setViewValue(item)
@@ -220,6 +225,8 @@ angular.module('ui.select', [])
       attrs.$observe('disabled', function() {
         $select.disabled = attrs.disabled ? true : false;
       });
+      
+      $select.allowNewValues = attrs.allowNewValues ? true : false;
 
       scope.$watch('$select.selected', function(newValue, oldValue) {
         if (ngModel.$viewValue !== newValue) {
@@ -236,13 +243,15 @@ angular.module('ui.select', [])
         var rows = container.querySelectorAll('.ui-select-choices-row');
 
         var highlighted = rows[$select.activeIndex];
-        var posY = highlighted.offsetTop + highlighted.clientHeight - container[0].scrollTop;
-        var height = container[0].offsetHeight;
+        if(highlighted) {
+          var posY = highlighted.offsetTop + highlighted.clientHeight - container[0].scrollTop;
+          var height = container[0].offsetHeight;
 
-        if (posY > height) {
-          container[0].scrollTop += posY - height;
-        } else if (posY < highlighted.clientHeight) {
-          container[0].scrollTop -= highlighted.clientHeight - posY;
+          if (posY > height) {
+            container[0].scrollTop += posY - height;
+          } else if (posY < highlighted.clientHeight) {
+            container[0].scrollTop -= highlighted.clientHeight - posY;
+          }
         }
       }
 
@@ -326,7 +335,8 @@ angular.module('ui.select', [])
         $select.parseRepeatAttr(attrs.repeat);
 
         scope.$watch('$select.search', function() {
-          $select.activeIndex = 0;
+          // do not autoselect first value if new values are allowed
+          $select.activeIndex = $select.allowNewValues ? -1 : 0;
           $select.populateItems(attrs.repeat);
         });
       };
